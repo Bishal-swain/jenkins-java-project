@@ -3,8 +3,8 @@ name: Deploy WAR to EC2 Tomcat
 on:
   push:
     branches:
-      - master     # Auto deploy whenever you push to master
-  workflow_dispatch:  # Still allows manual trigger
+      - main      # Deploy automatically when code is pushed to main
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
       - name: Upload WAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-war
+          name: war-file
           path: target/*.war
 
 
@@ -38,7 +38,7 @@ jobs:
       - name: Download WAR Artifact
         uses: actions/download-artifact@v4
         with:
-          name: app-war
+          name: war-file
           path: .
 
       - name: Setup SSH
@@ -50,13 +50,18 @@ jobs:
 
       - name: Copy WAR to EC2
         run: |
-          scp -o StrictHostKeyChecking=no *.war ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/deploy/app.war
+          scp -o StrictHostKeyChecking=no *.war \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/app.war
 
       - name: Deploy WAR in Tomcat
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo systemctl stop tomcat9
+            
             sudo rm -f /var/lib/tomcat9/webapps/ROOT.war
             sudo rm -rf /var/lib/tomcat9/webapps/ROOT/
-            sudo mv /home/ubuntu/deploy/app.war /var/lib/tomcat9/webapps/ROOT.war
-            sudo systemctl restart tomcat9
+            
+            sudo mv /home/ubuntu/app.war /var/lib/tomcat9/webapps/ROOT.war
+            
+            sudo systemctl start tomcat9
           EOF
