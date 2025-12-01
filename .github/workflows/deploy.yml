@@ -1,7 +1,10 @@
 name: Deploy WAR to EC2 Tomcat
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master     # Auto deploy whenever you push to master
+  workflow_dispatch:  # Still allows manual trigger
 
 jobs:
   build:
@@ -57,4 +60,3 @@ jobs:
             sudo mv /home/ubuntu/deploy/app.war /var/lib/tomcat9/webapps/ROOT.war
             sudo systemctl restart tomcat9
           EOF
-   
